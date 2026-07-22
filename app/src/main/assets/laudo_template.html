@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Laudo de Vistoria - ${codigoLaudo}</title>
+    <style>
+        /* Estilos Globais */
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.5; font-size: 12px; margin: 0; padding: 0; background: #fff; }
+        .container { max-width: 100%; margin: 0 auto; padding: 20px; }
+
+        /* Configurações específicas para geração do PDF */
+        @media print {
+            body { padding: 0; margin: 0; }
+            .container { padding: 0; }
+            .evitar-quebra { page-break-inside: avoid; }
+            .nova-pagina { page-break-before: always; }
+        }
+
+        /* Cabeçalho */
+        .cabecalho { text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 15px; margin-bottom: 20px; }
+        .cabecalho h1 { margin: 0; font-size: 24px; color: #2c3e50; text-transform: uppercase; }
+        .cabecalho p { margin: 5px 0 0; font-size: 14px; color: #7f8c8d; }
+
+        /* Sessão de Informações Gerais */
+        .secao-info { border: 1px solid #bdc3c7; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; }
+        .secao-titulo { font-size: 14px; font-weight: bold; color: #2c3e50; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-item strong { display: block; font-size: 10px; color: #7f8c8d; text-transform: uppercase; }
+        .info-item span { font-size: 13px; font-weight: bold; color: #2c3e50; }
+
+        /* Estrutura de Ambientes e Itens */
+        .ambiente-container { margin-bottom: 30px; }
+        .ambiente-titulo { font-size: 16px; color: #fff; background-color: #34495e; padding: 8px 12px; margin-bottom: 10px; border-radius: 3px; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { border: 1px solid #bdc3c7; padding: 8px; text-align: left; }
+        th { background-color: #ecf0f1; color: #2c3e50; font-size: 12px; }
+
+        /* Badges de Estado de Conservação */
+        .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+        .estado-otimo { background: #d4edda; color: #155724; }
+        .estado-bom { background: #cce5ff; color: #004085; }
+        .estado-regular { background: #fff3cd; color: #856404; }
+        .estado-ruim { background: #f8d7da; color: #721c24; }
+        .estado-pessimo { background: #dc3545; color: #fff; }
+        .estado-inexistente { background: #e2e3e5; color: #383d41; }
+
+        /* Evidências Fotográficas */
+        .fotos-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .foto-item { border: 1px solid #bdc3c7; padding: 5px; text-align: center; background: #fff; }
+        .foto-item img { width: 100%; max-height: 180px; object-fit: contain; }
+        .foto-item p { font-size: 10px; color: #7f8c8d; margin: 5px 0 0; }
+
+        /* Assinaturas Digitais (ICP-Brasil) */
+        .area-assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px; }
+        .caixa-assinatura { border: 1px solid #2c3e50; padding: 15px; text-align: center; border-radius: 5px; }
+        .hash-id { font-family: monospace; font-size: 10px; background: #ecf0f1; padding: 5px; margin-bottom: 10px; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- CABEÇALHO -->
+    <div class="cabecalho">
+        <h1>Laudo de Vistoria de Imóvel</h1>
+        <p>Documento gerado em: ${dataGeracao}</p>
+        <p><strong>Status:</strong> ${statusVistoria}</p>
+    </div>
+
+    <!-- DADOS GERAIS -->
+    <div class="secao-info evitar-quebra">
+        <div class="secao-titulo">Dados do Imóvel e Envolvidos</div>
+        <div class="grid-info">
+            <div class="info-item"><strong>Endereço do Imóvel</strong><span>${enderecoImovel}</span></div>
+            <div class="info-item"><strong>Tipo de Imóvel</strong><span>${tipoImovel}</span></div>
+            <div class="info-item"><strong>Proprietário / Locador</strong><span>${nomeProprietario}</span></div>
+            <div class="info-item"><strong>Inquilino / Locatário</strong><span>${nomeInquilino}</span></div>
+            <div class="info-item"><strong>Vistoriador Responsável</strong><span>${nomeVistoriador}</span></div>
+            <div class="info-item"><strong>Data da Vistoria</strong><span>${dataVistoria}</span></div>
+        </div>
+    </div>
+
+    <!-- O KOTLIN VAI INJETAR TODOS OS CÔMODOS EXATAMENTE NESTA LINHA -->
+    ${HTML_DOS_COMODOS}
+
+    <!-- ASSINATURAS DIGITAIS -->
+    <div class="evitar-quebra nova-pagina">
+        <div class="cabecalho" style="border:none; margin-bottom: 10px;">
+            <h2 style="color: #2c3e50; font-size: 18px;">Certificação de Assinaturas</h2>
+            <p style="font-size: 12px;">Assinado eletronicamente com validade jurídica.</p>
+        </div>
+
+        <div class="area-assinaturas">
+            <div class="caixa-assinatura">
+                <div class="hash-id">Hash: ${hashVistoriador}</div>
+                <strong>${nomeVistoriador}</strong>
+                <p style="margin: 5px 0 0; font-size: 11px;">Vistoriador</p>
+                <p style="margin: 0; font-size: 10px; color: #7f8c8d;">Data: ${dataAssinaturaVistoriador}</p>
+            </div>
+
+            <div class="caixa-assinatura">
+                <div class="hash-id">Hash: ${hashInquilino}</div>
+                <strong>${nomeInquilino}</strong>
+                <p style="margin: 5px 0 0; font-size: 11px;">Locatário(a)</p>
+                <p style="margin: 0; font-size: 10px; color: #7f8c8d;">Data: ${dataAssinaturaInquilino}</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

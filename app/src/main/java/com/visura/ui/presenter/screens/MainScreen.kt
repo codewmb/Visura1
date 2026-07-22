@@ -20,6 +20,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -28,11 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.createGraph
+import androidx.navigation.toRoute
+import com.visura.ui.viewmodels.InspectionViewModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -48,6 +52,7 @@ fun MainScreen(
     }
 }
 
+// --- ROTAS DA NAVEGAÇÃO ---
 @Serializable
 @SerialName("Home")
 object Home
@@ -55,6 +60,24 @@ object Home
 @Serializable
 @SerialName("Register")
 object Register
+
+@Serializable
+@SerialName("PropertyDetails")
+object PropertyDetails
+
+@Serializable
+@SerialName("Rooms")
+object Rooms
+
+@Serializable
+@SerialName("CompletedInspections")
+object CompletedInspections
+
+@Serializable
+data class InspectionDetail(val inspectionId: String)
+
+@Serializable
+data class RoomItems(val roomName: String)
 
 enum class Destination(
     val route: Any,
@@ -78,7 +101,10 @@ enum class Destination(
 
 @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
 @Composable
-fun Menu(modifier: Modifier = Modifier) {
+fun Menu(
+    modifier: Modifier = Modifier,
+    inspectionViewModel: InspectionViewModel = hiltViewModel()
+) {
 
     val navController = rememberNavController()
     val startDestination = Destination.HOME
@@ -86,6 +112,9 @@ fun Menu(modifier: Modifier = Modifier) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val current = navBackStackEntry?.destination?.route
+
+    val roomsList by inspectionViewModel.rooms.collectAsState()
+    val completedList by inspectionViewModel.completedInspections.collectAsState()
 
     LaunchedEffect(current) {
         Destination.entries.forEachIndexed { index, destination ->
@@ -96,15 +125,88 @@ fun Menu(modifier: Modifier = Modifier) {
     }
 
     val graph = navController.createGraph(startDestination = startDestination.route) {
-        composable<Home> { Home() }
-        composable<Register>  { Register() }
+        composable<Home> {
+            HomeScreen(
+                onHistoryClick = {
+                    navController.navigate(CompletedInspections)
+                }
+            )
+        }
+
+        composable<Register> {
+            Register(
+                onConfirmClick = {
+                    navController.navigate(PropertyDetails)
+                }
+            )
+        }
+
+        composable<PropertyDetails> {
+            PropertyDetailsScreen(
+                onNextClick = { owner, ownerCpf, tenant, tenantCpf, inspector, obs ->
+                    inspectionViewModel.updatePropertyDetails(owner, ownerCpf, tenant, tenantCpf, inspector, obs)
+                    navController.navigate(Rooms)
+                }
+            )
+        }
+
+        composable<Rooms> {
+            RoomsScreen(
+                rooms = roomsList,
+                onAddRoom = { roomName -> inspectionViewModel.addRoom(roomName) },
+                onRemoveRoom = { roomName -> inspectionViewModel.removeRoom(roomName) },
+                onRoomSelect = { roomName ->
+                    navController.navigate(RoomItems(roomName = roomName))
+                },
+                onFinishAllClick = {
+                    inspectionViewModel.finishCurrentInspection()
+                    navController.navigate(CompletedInspections)
+                }
+            )
+        }
+
+        composable<RoomItems> { backStackEntry ->
+            val args = backStackEntry.toRoute<RoomItems>()
+            val currentRoom = inspectionViewModel.getRoom(args.roomName)
+
+            RoomItemsScreen(
+                roomName = args.roomName,
+                savedItems = currentRoom?.items ?: emptyList(),
+                onBackClick = { navController.popBackStack() },
+                onSaveRoomClick = { items ->
+                    inspectionViewModel.saveRoomItems(args.roomName, items)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<CompletedInspections> {
+            CompletedInspectionsScreen(
+                inspections = completedList,
+                onInspectionClick = { inspectionId ->
+                    navController.navigate(InspectionDetail(inspectionId))
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable<InspectionDetail> { backStackEntry ->
+            val args = backStackEntry.toRoute<InspectionDetail>()
+            val item = inspectionViewModel.getCompletedInspection(args.inspectionId)
+
+            InspectionDetailScreen(
+                inspection = item,
+                onBackClick = { navController.popBackStack() },
+                onSaveUpdate = { updatedInspection ->
+                    inspectionViewModel.updateCompletedInspection(updatedInspection)
+                }
+            )
+        }
     }
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            // TODO()
-        },
+        topBar = {},
         bottomBar = {
             NavigationBar(
                 modifier = Modifier.fillMaxWidth(),
@@ -127,7 +229,7 @@ fun Menu(modifier: Modifier = Modifier) {
                             )
                         },
                         label = {
-                            Text(if (destination.route == Home) "Home" else "Nova Vistoria");
+                            Text(if (destination.route == Home) "Home" else "Nova Vistoria")
                         }
                     )
                 }

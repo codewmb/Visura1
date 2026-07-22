@@ -70,6 +70,9 @@ object PdfReportExporter {
             """.trimIndent()
         }
 
+        val ownerDocText = if (inspection.ownerCpfCnpj.isNotBlank()) " (CPF/CNPJ: ${inspection.ownerCpfCnpj})" else ""
+        val tenantDocText = if (inspection.tenantCpfCnpj.isNotBlank()) " (CPF/CNPJ: ${inspection.tenantCpfCnpj})" else ""
+
         return """
         <!DOCTYPE html>
         <html>
@@ -83,6 +86,17 @@ object PdfReportExporter {
                 .card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
                 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; }
                 .info-item { margin-bottom: 4px; }
+                
+                /* Estilos da Seção de Assinaturas com recuo superior (~5 linhas) e inferior */
+                .signatures-container { 
+                    padding-top: 90px; 
+                    margin-bottom: 80px; 
+                    padding-bottom: 40px; 
+                    page-break-inside: avoid; 
+                }
+                .signatures-table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+                .signature-box { width: 45%; text-align: center; vertical-align: top; }
+                .signature-line { border-top: 1px solid #333; margin-bottom: 8px; width: 85%; margin-left: auto; margin-right: auto; }
             </style>
         </head>
         <body>
@@ -93,8 +107,8 @@ object PdfReportExporter {
 
             <div class="card">
                 <div class="info-grid">
-                    <div class="info-item"><strong>Proprietário:</strong> ${inspection.ownerName}</div>
-                    <div class="info-item"><strong>Inquilino:</strong> ${inspection.tenantName.ifBlank { "Não informado" }}</div>
+                    <div class="info-item"><strong>Proprietário:</strong> ${inspection.ownerName}$ownerDocText</div>
+                    <div class="info-item"><strong>Inquilino:</strong> ${inspection.tenantName.ifBlank { "Não informado" }}$tenantDocText</div>
                     <div class="info-item"><strong>Vistoriador:</strong> ${inspection.inspectorName.ifBlank { "Não informado" }}</div>
                     <div class="info-item"><strong>Data:</strong> ${inspection.date}</div>
                 </div>
@@ -103,6 +117,30 @@ object PdfReportExporter {
 
             <h2 style="font-size: 18px; color: #1a237e; margin-bottom: 16px;">Detalhamento dos Cômodos</h2>
             $roomsHtml
+
+            <!-- BLOCO DE ASSINATURAS -->
+            <div class="signatures-container">
+                <p style="text-align: center; font-size: 13px; color: #555; margin-bottom: 40px;">
+                    E, por estarem de acordo com o estado do imóvel e com todas as observações descritas neste laudo de vistoria, as partes assinam o presente documento.
+                </p>
+                <table class="signatures-table">
+                    <tr>
+                        <td class="signature-box">
+                            <div class="signature-line"></div>
+                            <strong style="font-size: 14px; color: #222;">${inspection.ownerName}</strong><br>
+                            <span style="font-size: 12px; color: #666;">Proprietário / Locador</span><br>
+                            <span style="font-size: 11px; color: #666;">${if (inspection.ownerCpfCnpj.isNotBlank()) "CPF/CNPJ: ${inspection.ownerCpfCnpj}" else "CPF/CNPJ: ____________________"}</span>
+                        </td>
+                        <td style="width: 10%;"></td>
+                        <td class="signature-box">
+                            <div class="signature-line"></div>
+                            <strong style="font-size: 14px; color: #222;">${inspection.inspectorName.ifBlank { "Vistoriador Responsável" }}</strong><br>
+                            <span style="font-size: 12px; color: #666;">Vistoriador</span><br>
+                            <span style="font-size: 11px; color: #666;">Assinatura do Vistoriador</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </body>
         </html>
         """.trimIndent()

@@ -1,47 +1,55 @@
 package com.visura.ui.presenter.screens
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AssignmentTurnedIn
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.visura.ui.presenter.elements.button.StandardOutlinedButton
-import com.visura.ui.viewmodels.HomeViewModel
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
+import androidx.compose.ui.unit.sp
 
 @Composable
-fun Home(
-    modifier: Modifier = Modifier,
-    mainViewModel: HomeViewModel = hiltViewModel()
+fun HomeScreen(
+    onHistoryClick: () -> Unit = {}
 ) {
-    val auth: FirebaseAuth = Firebase.auth
-    val user = auth.currentUser
-    Scaffold(
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Box(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Bem-vindo ao Visura",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Gerencie e realize vistorias imobiliárias com facilidade.",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onHistoryClick,
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp)
+                .fillMaxWidth()
+                .height(56.dp)
         ) {
-            StandardOutlinedButton(
-                text = "Sair",
-                onClick = mainViewModel::exit,
-                enabled = true,
-                modifier = Modifier.align(Alignment.TopStart)
-            )
-            Text(
-                modifier = Modifier.align(Alignment.Center),
-                text = "Ola: ${user?.email}"
-            )
+            Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text("Ver Vistorias Feitas", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

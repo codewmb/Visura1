@@ -48,7 +48,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -86,7 +85,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,8 +93,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.visura.R
-import com.visura.ui.presenter.elements.button.StandardTextButton
 import com.visura.ui.viewmodels.RegisterUiState
 import com.visura.ui.viewmodels.RegisterViewModel
 
@@ -109,7 +105,10 @@ import com.visura.ui.viewmodels.RegisterViewModel
 )
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun Register(viewModel: RegisterViewModel = hiltViewModel()) {
+fun Register(
+    viewModel: RegisterViewModel = hiltViewModel(),
+    onConfirmClick: () -> Unit = {} // 🚨 1. AÇÃO DE NAVEGAÇÃO ADICIONADA AQUI
+) {
     val uiState by viewModel.uiState.collectAsState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var showConfirmInfoDialog by remember { mutableStateOf(false) }
@@ -205,12 +204,14 @@ fun Register(viewModel: RegisterViewModel = hiltViewModel()) {
                     }
                 )
             }
+
             InfoConfirmDialog(
                 showDialog = showConfirmInfoDialog,
                 residenceType = uiState.selectedResidenceType,
                 address = uiState.selectedAddress,
                 onConfirm = {
                     showConfirmInfoDialog = false
+                    onConfirmClick() // 🚨 2. CHAMA A NAVEGAÇÃO AO CONFIRMAR!
                 },
                 onDismiss = {
                     showConfirmInfoDialog = false
@@ -219,7 +220,6 @@ fun Register(viewModel: RegisterViewModel = hiltViewModel()) {
         }
     }
 }
-
 
 @Composable
 fun FinishButton(
@@ -592,11 +592,10 @@ fun ProcessStep(
     }
 }
 
-
 @Composable
 fun AnimatedLocationButton(onClick: () -> Unit, hasAddress: Boolean) {
     val scale by animateFloatAsState(
-        targetValue = if (hasAddress) 1.0f else 1.0f,
+        targetValue = 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -901,59 +900,183 @@ fun AddressItem(address: Address, onClick: () -> Unit) {
 
 @Composable
 fun LoadingState() {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(40.dp),
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Buscando endereços...",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        CircularProgressIndicator()
     }
 }
 
 @Composable
 fun ErrorState(error: String) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp, horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Erro",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.error
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
             text = error,
+            color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            textAlign = TextAlign.Center
         )
     }
 }
 
 @Composable
 fun EmptyState() {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp, horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = "Nenhum endereço encontrado",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun InfoConfirmDialog(
+    showDialog: Boolean,
+    residenceType: String,
+    address: Address?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (showDialog) {
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(32.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Text(
+                            text = residenceType.ifEmpty { "Residencial" },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            AddressInfoRow(
+                                label = "Endereço",
+                                value = buildAddressPrimaryText(address)
+                            )
+                            AddressInfoRow(
+                                label = "Cidade",
+                                value = address?.locality ?: address?.subAdminArea ?: "Não informada"
+                            )
+                            AddressInfoRow(
+                                label = "Estado",
+                                value = address?.adminArea ?: "Não informado"
+                            )
+                            AddressInfoRow(
+                                label = "CEP",
+                                value = address?.postalCode ?: "Não informado"
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancelar")
+                        }
+
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Confirmar")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddressInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End
         )
     }
 }
@@ -964,302 +1087,32 @@ fun RequirePermissionLocation(
     onPermissionsGranted: () -> Unit,
     onPermissionsDenied: () -> Unit
 ) {
-    val locationPermissionsState = rememberMultiplePermissionsState(
+    val permissionState = rememberMultiplePermissionsState(
         permissions = listOf(
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
 
-    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
-        if (locationPermissionsState.allPermissionsGranted) {
+    LaunchedEffect(permissionState.allPermissionsGranted) {
+        if (permissionState.allPermissionsGranted) {
             onPermissionsGranted()
         } else {
             onPermissionsDenied()
         }
     }
-
-    LaunchedEffect(Unit) {
-        if (!locationPermissionsState.allPermissionsGranted) {
-            locationPermissionsState.launchMultiplePermissionRequest()
-        }
-    }
-
-    if (locationPermissionsState.shouldShowRationale) {
-        PermissionRationaleDialog(
-            onRequestPermission = { locationPermissionsState.launchMultiplePermissionRequest() },
-            onDismiss = onPermissionsDenied
-        )
-    }
 }
 
-@Composable
-fun PermissionRationaleDialog(
-    onRequestPermission: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.permission_location_error_title)) },
-        text = { Text(stringResource(R.string.permission_location_error_body)) },
-        confirmButton = {
-            StandardTextButton(
-                text = "Permitir",
-                onClick = onRequestPermission,
-                enabled = true
-            )
-        },
-        dismissButton = {
-            StandardTextButton(
-                text = "Agora não",
-                onClick = onDismiss,
-                enabled = true,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    )
+fun buildAddressPrimaryText(address: Address?): String {
+    if (address == null) return "Endereço não selecionado"
+    return address.thoroughfare ?: address.featureName ?: "Endereço não identificado"
 }
 
-@Composable
-fun InfoConfirmDialog(
-    showDialog: Boolean,
-    residenceType: String = "Residencial",
-    address: Address? = null,
-    onConfirm: () -> Unit = {},
-    onDismiss: () -> Unit = {}
-) {
-    if (showDialog && address != null) {
-        Dialog(onDismissRequest = onDismiss) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    DialogHeader(residenceType = residenceType)
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    AddressInfoCard(address = address)
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    DialogActionButtons(
-                        onDismiss = onDismiss,
-                        onConfirm = onConfirm
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DialogHeader(residenceType: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        AnimatedCheckIcon()
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ResidenceTypeBadge(type = residenceType)
-    }
-}
-
-@Composable
-private fun AnimatedCheckIcon() {
-    val scale by rememberInfiniteTransition(label = "scale").animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "icon_scale"
-    )
-
-    Box(
-        modifier = Modifier
-            .size(72.dp)
-            .scale(scale)
-            .clip(RoundedCornerShape(50))
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.secondaryContainer
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Filled.CheckCircle,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(40.dp)
-        )
-    }
-}
-
-@Composable
-private fun ResidenceTypeBadge(type: String) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
-    ) {
-        Text(
-            text = type,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-        )
-    }
-}
-
-@Composable
-private fun AddressInfoCard(address: Address) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            address.thoroughfare?.let { street ->
-                InfoRow(
-                    label = "Endereço",
-                    value = if (address.subThoroughfare != null) {
-                        "$street, ${address.subThoroughfare}"
-                    } else {
-                        street
-                    }
-                )
-            }
-
-            address.subLocality?.let { neighborhood ->
-                InfoRow(label = "Bairro", value = neighborhood)
-            }
-
-            address.locality?.let { city ->
-                InfoRow(label = "Cidade", value = city)
-            }
-
-            address.adminArea?.let { state ->
-                InfoRow(label = "Estado", value = state)
-            }
-
-            address.postalCode?.let { postalCode ->
-                InfoRow(label = "CEP", value = postalCode)
-            }
-        }
-    }
-}
-
-@Composable
-private fun DialogActionButtons(
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Button(
-            onClick = onDismiss,
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            Text(
-                text = "Cancelar",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Text(
-                text = "Confirmar",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.width(80.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-private fun buildAddressPrimaryText(address: Address): String {
-    val street = address.thoroughfare
-    val neighborhood = address.subLocality
-    return when {
-        street != null && neighborhood != null -> "$street, $neighborhood"
-        street != null -> street
-        neighborhood != null -> neighborhood
-        else -> address.locality ?: "Endereço"
-    }
-}
-
-private fun buildAddressSecondaryText(address: Address): String {
-    val parts = mutableListOf<String>()
-    address.subThoroughfare?.let { parts.add(it) }
-    address.locality?.let { parts.add(it) }
-    address.adminArea?.let { parts.add(it) }
-    address.postalCode?.let { parts.add("CEP $it") }
-    return parts.joinToString(separator = ", ")
+fun buildAddressSecondaryText(address: Address?): String {
+    if (address == null) return ""
+    val subThoroughfare = address.subThoroughfare?.let { "$it, " } ?: ""
+    val subLocality = address.subLocality?.let { "$it, " } ?: ""
+    val locality = address.locality ?: ""
+    val postalCode = address.postalCode?.let { ", CEP $it" } ?: ""
+    return "$subThoroughfare$subLocality$locality$postalCode"
 }
